@@ -123,6 +123,22 @@ def run_cli(image_path):
         sys.exit(1)
 
 
+def safe_image(img, caption=None):
+    """Safely renders an image across all Streamlit versions (Streamlit Cloud & Local)."""
+    import streamlit as st
+    for kwargs in [
+        {"use_container_width": True},
+        {"use_column_width": True},
+        {"width": "stretch"},
+        {}
+    ]:
+        try:
+            st.image(img, caption=caption, **kwargs)
+            return
+        except TypeError:
+            continue
+
+
 def run_streamlit_app():
     """Interactive Streamlit Web Dashboard."""
     import streamlit as st
@@ -184,7 +200,7 @@ def run_streamlit_app():
 
         if os.path.exists(HISTORY_PLOT_PATH):
             st.subheader("📈 Training History")
-            st.image(HISTORY_PLOT_PATH, caption="Accuracy & Loss Curves", use_column_width=True)
+            safe_image(HISTORY_PLOT_PATH, caption="Accuracy & Loss Curves")
 
         st.caption("Internship ML Project • Deep Learning with TensorFlow & Keras")
 
@@ -234,7 +250,7 @@ def run_streamlit_app():
                         image_name = os.path.basename(selected_path)
 
             if selected_image is not None:
-                st.image(selected_image, caption=f"Selected: {image_name}", use_column_width=True)
+                safe_image(selected_image, caption=f"Selected: {image_name}")
 
         with col2:
             st.subheader("2. Classification Results")
@@ -280,13 +296,13 @@ def run_streamlit_app():
         cols = st.columns(4)
         for idx, p in enumerate(cat_samples):
             with cols[idx % 4]:
-                st.image(p, caption=os.path.basename(p), use_column_width=True)
+                safe_image(p, caption=os.path.basename(p))
 
         st.markdown("##### 🐶 Sample Dogs (dog/)")
         cols = st.columns(4)
         for idx, p in enumerate(dog_samples):
             with cols[idx % 4]:
-                st.image(p, caption=os.path.basename(p), use_column_width=True)
+                safe_image(p, caption=os.path.basename(p))
 
     with tabs[2]:
         st.subheader("Model Architecture & Engineering Highlights")
