@@ -10,6 +10,7 @@ import sys
 import json
 import glob
 import argparse
+
 import numpy as np
 from PIL import Image
 
@@ -185,30 +186,30 @@ def run_streamlit_app():
 
     # Sidebar
     with st.sidebar:
-        st.header("⚙️ Project Details")
+        st.header("Project Details")
         st.info("**Project**: Pet Image Classification\n\n"
                 "**Backbone**: MobileNetV2 (Transfer Learning)\n\n"
                 "**Classes**: Cat (0), Dog (1)\n\n"
                 "**Input Resolution**: 160 x 160 px")
 
         if os.path.exists(MODEL_PATH):
-            st.success("✅ Model loaded: `pet_classifier.keras`")
+            st.success(" Model loaded: `pet_classifier.keras`")
         else:
-            st.error("⚠️ Model not trained yet! Run `python train.py` first.")
+            st.error(" Model not trained yet! Run `python train.py` first.")
 
         st.divider()
 
         if os.path.exists(HISTORY_PLOT_PATH):
-            st.subheader("📈 Training History")
+            st.subheader(" Training History")
             safe_image(HISTORY_PLOT_PATH, caption="Accuracy & Loss Curves")
 
         st.caption("Internship ML Project • Deep Learning with TensorFlow & Keras")
 
     # Main Page Header
-    st.markdown('<div class="main-header">🐾 Pet Image Classifier</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header"> Pet Image Classifier</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Upload an image of a cat or dog, or pick a sample from the dataset to test deep learning predictions.</div>', unsafe_allow_html=True)
 
-    tabs = st.tabs(["🔍 Predict Pet", "📁 Dataset Gallery & Test", "ℹ️ About the Model"])
+    tabs = st.tabs([" Predict Pet", "Dataset Gallery & Test", "ℹ About the Model"])
 
     with tabs[0]:
         col1, col2 = st.columns([1, 1], gap="large")
@@ -277,28 +278,28 @@ def run_streamlit_app():
                     """, unsafe_allow_html=True)
 
                     st.markdown("#### Confidence Breakdown")
-                    st.write(f"🐱 **Cat Probability:** {res['cat_prob']:.2f}%")
+                    st.write(f"**Cat Probability:** {res['cat_prob']:.2f}%")
                     st.progress(float(res['cat_prob'] / 100.0))
 
-                    st.write(f"🐶 **Dog Probability:** {res['dog_prob']:.2f}%")
+                    st.write(f" **Dog Probability:** {res['dog_prob']:.2f}%")
                     st.progress(float(res['dog_prob'] / 100.0))
 
                     st.info(f"Raw Sigmoid Output: `{res['raw_score']:.4f}` (Values < 0.5 classify as Cat, ≥ 0.5 as Dog)")
             else:
-                st.info("👈 Upload an image or choose a dataset sample to view classification results.")
+                st.info("Upload an image or choose a dataset sample to view classification results.")
 
     with tabs[1]:
         st.subheader("Dataset Samples Quick Preview")
         cat_samples = sorted(glob.glob(os.path.join(CURRENT_DIR, "cat", "*.jpg")))[:8]
         dog_samples = sorted(glob.glob(os.path.join(CURRENT_DIR, "dog", "*.jpg")))[:8]
 
-        st.markdown("##### 🐱 Sample Cats (cat/)")
+        st.markdown("##### Sample Cats (cat/)")
         cols = st.columns(4)
         for idx, p in enumerate(cat_samples):
             with cols[idx % 4]:
                 safe_image(p, caption=os.path.basename(p))
 
-        st.markdown("##### 🐶 Sample Dogs (dog/)")
+        st.markdown("#####  Sample Dogs (dog/)")
         cols = st.columns(4)
         for idx, p in enumerate(dog_samples):
             with cols[idx % 4]:
