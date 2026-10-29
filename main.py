@@ -1,11 +1,12 @@
 """
-Pet Image Classification - Inference Application & Web UI
-Supports popular pet and animal categories from Kaggle Animals-10:
-Butterfly, Cat, Chicken, Cow, Dog, Elephant, Horse, Sheep, Spider, Squirrel.
+Animal & Pet Image Classification - Web App & Inference
+Author: Abhishek Kushwaha
+Branch: B.Tech CSE (Cloud Computing & Machine Learning - CCML)
+Section: 4-A
 
-Provides:
-  1. Interactive Streamlit Web UI (`streamlit run main.py` or `python main.py`)
-  2. Command-Line Interface (`python main.py --image <path>`)
+Features:
+1. Streamlit Interactive Web Application
+2. Command-Line (CLI) Inference Interface
 """
 
 import os
@@ -47,8 +48,10 @@ def load_model_and_labels():
                 _CACHED_CLASSES = json.load(f)
         else:
             _CACHED_CLASSES = {
-                "0": "Butterfly", "1": "Cat", "2": "Chicken", "3": "Cow", "4": "Dog",
-                "5": "Elephant", "6": "Horse", "7": "Sheep", "8": "Spider", "9": "Squirrel"
+                "0": "Butterfly", "1": "Camel", "2": "Cat", "3": "Chicken",
+                "4": "Cow", "5": "Dog", "6": "Elephant", "7": "Goat",
+                "8": "Horse", "9": "Lion", "10": "Monkey", "11": "Rabbit",
+                "12": "Sheep", "13": "Spider", "14": "Squirrel", "15": "Tiger"
             }
 
     return _CACHED_MODEL, _CACHED_CLASSES

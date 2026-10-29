@@ -1,6 +1,10 @@
-# Pet & Animal Image Classification (Deep Learning & Transfer Learning)
+# Animal & Pet Image Classification using Deep Learning
 
-An end-to-end Deep Learning Computer Vision system capable of classifying images into **16 popular animal categories** using **MobileNetV2 Transfer Learning**, real-world photographic datasets, and an interactive **Streamlit** web application.
+**Student Name**: Abhishek Kushwaha  
+**Course / Specialization**: B.Tech CSE (Cloud Computing & Machine Learning - CCML)  
+**Section**: 4-A  
+
+An end-to-end Computer Vision project implementing a Deep Learning model with **MobileNetV2 Transfer Learning** to classify real photographs across **16 animal categories**. It features an interactive **Streamlit** dashboard and a command-line inference tool.
 
 ---
 

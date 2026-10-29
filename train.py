@@ -1,8 +1,12 @@
 """
-16-Animal Image Classification - Model Training Pipeline
-Trains a transfer learning model (MobileNetV2) with data augmentation
-to classify 16 popular animal categories:
-Butterfly, Camel, Cat, Chicken, Cow, Dog, Elephant, Goat, Horse, Lion, Monkey, Rabbit, Sheep, Spider, Squirrel, Tiger.
+Deep Learning Project: Animal Image Classification
+Author: Abhishek Kushwaha
+Branch: B.Tech CSE (Cloud Computing & Machine Learning - CCML)
+Section: 4-A
+
+Description:
+This script implements a MobileNetV2 Transfer Learning pipeline with Data Augmentation
+to train a deep neural network on 16 animal categories.
 """
 
 import os
@@ -144,7 +148,7 @@ def build_model(num_classes):
     x = tf.keras.layers.Dropout(0.3)(x)
     outputs = tf.keras.layers.Dense(num_classes, activation="softmax", name="predictions")(x)
 
-    model = tf.keras.Model(inputs=inputs, outputs=outputs, name="AnimalClassifier_10Classes")
+    model = tf.keras.Model(inputs=inputs, outputs=outputs, name="AnimalClassifier")
     return model, base_model
 
 
