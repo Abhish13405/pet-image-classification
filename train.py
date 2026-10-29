@@ -27,6 +27,7 @@ FINE_TUNE_EPOCHS = 8
 TOTAL_EPOCHS = INITIAL_EPOCHS + FINE_TUNE_EPOCHS
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(CURRENT_DIR, "data")
 MODEL_DIR = os.path.join(CURRENT_DIR, "model")
 MODEL_PATH = os.path.join(MODEL_DIR, "pet_classifier.keras")
 HISTORY_PLOT_PATH = os.path.join(MODEL_DIR, "training_history.png")
@@ -44,9 +45,10 @@ def load_dataset(base_dir):
     """
     Scans each animal directory, creates stratified balanced train and validation splits.
     """
+    data_path = os.path.join(base_dir, "data") if os.path.isdir(os.path.join(base_dir, "data")) else base_dir
     class_names = []
     for c in TARGET_CLASSES:
-        d = os.path.join(base_dir, c)
+        d = os.path.join(data_path, c)
         if os.path.isdir(d):
             imgs = glob.glob(os.path.join(d, "*.[jJ][pP][gG]")) + glob.glob(os.path.join(d, "*.[pP][nN][gG]"))
             if len(imgs) > 0:
@@ -59,10 +61,10 @@ def load_dataset(base_dir):
     train_files, train_labels = [], []
     val_files, val_labels = [], []
 
-    print(f"Detected {len(class_names)} active classes: {class_names}")
+    print(f"Detected {len(class_names)} active classes from '{data_path}': {class_names}")
 
     for c in class_names:
-        folder = os.path.join(base_dir, c)
+        folder = os.path.join(data_path, c)
         files = glob.glob(os.path.join(folder, "*.[jJ][pP][gG]")) + glob.glob(os.path.join(folder, "*.[pP][nN][gG]"))
         random.shuffle(files)
 
@@ -197,7 +199,7 @@ def train():
     print("=" * 65)
 
     # 1. Prepare data
-    train_files, train_labels, val_files, val_labels, idx_to_class = load_dataset(CURRENT_DIR)
+    train_files, train_labels, val_files, val_labels, idx_to_class = load_dataset(DATA_DIR)
     num_classes = len(idx_to_class)
     
     train_ds = create_tf_dataset(train_files, train_labels, is_training=True)

@@ -17,6 +17,7 @@ import numpy as np
 from PIL import Image
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(CURRENT_DIR, "data")
 MODEL_DIR = os.path.join(CURRENT_DIR, "model")
 MODEL_PATH = os.path.join(MODEL_DIR, "pet_classifier.keras")
 CLASSES_PATH = os.path.join(MODEL_DIR, "classes.json")
@@ -235,8 +236,9 @@ def run_streamlit_app():
 
             # Load active category folders
             _, label_map = load_model_and_labels()
+            search_dir = DATA_DIR if os.path.isdir(DATA_DIR) else CURRENT_DIR
             if label_map:
-                cat_options = [c.lower() for c in label_map.values() if os.path.isdir(os.path.join(CURRENT_DIR, c.lower()))]
+                cat_options = [c.lower() for c in label_map.values() if os.path.isdir(os.path.join(search_dir, c.lower()))]
             else:
                 cat_options = [
                     c for c in [
@@ -244,7 +246,7 @@ def run_streamlit_app():
                         "elephant", "goat", "horse", "lion", "monkey",
                         "rabbit", "sheep", "spider", "squirrel", "tiger"
                     ]
-                    if os.path.isdir(os.path.join(CURRENT_DIR, c))
+                    if os.path.isdir(os.path.join(search_dir, c))
                 ]
 
             if input_mode == "Upload Image File":
@@ -261,7 +263,7 @@ def run_streamlit_app():
                     cat_options,
                     format_func=lambda x: x.capitalize()
                 )
-                sample_files = sorted(glob.glob(os.path.join(CURRENT_DIR, sample_category, "*.[jJ][pP][gG]")))
+                sample_files = sorted(glob.glob(os.path.join(search_dir, sample_category, "*.[jJ][pP][gG]")))
 
                 if sample_files:
                     selected_path = st.selectbox(
@@ -319,9 +321,9 @@ def run_streamlit_app():
         st.caption(f"Showing sample real photographs from each of the {len(cat_options)} animal classes in the project dataset.")
 
         for c in cat_options:
-            c_samples = sorted(glob.glob(os.path.join(CURRENT_DIR, c, "*.[jJ][pP][gG]")))[:4]
+            c_samples = sorted(glob.glob(os.path.join(search_dir, c, "*.[jJ][pP][gG]")))[:4]
             if c_samples:
-                st.markdown(f"##### {c.capitalize()} ({c}/)")
+                st.markdown(f"##### {c.capitalize()} (data/{c}/)")
                 cols = st.columns(4)
                 for idx, p in enumerate(c_samples):
                     with cols[idx]:

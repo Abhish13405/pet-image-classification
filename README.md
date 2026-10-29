@@ -60,9 +60,9 @@ streamlit run main.py --server.port 8502
 
 ### 2. Command Line Prediction
 ```bash
-python main.py --image rabbit/0.jpg
-python main.py --image lion/0.jpg
-python main.py --image camel/0.jpg
+python main.py --image data/rabbit/0.jpg
+python main.py --image data/lion/0.jpg
+python main.py --image data/camel/0.jpg
 ```
 
 ### 3. Re-train the Model
@@ -75,22 +75,23 @@ python train.py
 ## Project Structure
 
 ```text
-├── butterfly/                # Butterfly real photos
-├── camel/                    # Camel real photos
-├── cat/                      # Cat image dataset
-├── chicken/                  # Chicken real photos
-├── cow/                      # Cow real photos
-├── dog/                      # Dog image dataset
-├── elephant/                 # Elephant real photos
-├── goat/                     # Goat real photos
-├── horse/                    # Horse real photos
-├── lion/                     # Lion real photos
-├── monkey/                   # Monkey real photos
-├── rabbit/                   # Rabbit real photos
-├── sheep/                    # Sheep real photos
-├── spider/                   # Spider real photos
-├── squirrel/                 # Squirrel real photos
-├── tiger/                    # Tiger real photos
+├── data/                     # Dataset containing all 16 animal category folders
+│   ├── butterfly/            # Butterfly real photos
+│   ├── camel/                # Camel real photos
+│   ├── cat/                  # Cat image dataset
+│   ├── chicken/              # Chicken real photos
+│   ├── cow/                  # Cow real photos
+│   ├── dog/                  # Dog image dataset
+│   ├── elephant/             # Elephant real photos
+│   ├── goat/                 # Goat real photos
+│   ├── horse/                # Horse real photos
+│   ├── lion/                 # Lion real photos
+│   ├── monkey/               # Monkey real photos
+│   ├── rabbit/               # Rabbit real photos
+│   ├── sheep/                # Sheep real photos
+│   ├── spider/               # Spider real photos
+│   ├── squirrel/             # Squirrel real photos
+│   └── tiger/                # Tiger real photos
 ├── model/                    # Saved model weights & artifacts
 │   ├── classes.json          # 16-class label mapping
 │   ├── pet_classifier.keras  # Trained multi-class Keras model
