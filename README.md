@@ -1,38 +1,41 @@
-# 🐾 10-Animal Image Classification (Deep Learning & Transfer Learning)
+# Pet & Animal Image Classification (Deep Learning & Transfer Learning)
 
-An end-to-end Deep Learning Computer Vision system capable of classifying images into **10 popular animal categories** using **MobileNetV2 Transfer Learning**, real-world data from the **Kaggle Animals-10** benchmark dataset, and an interactive **Streamlit** web application.
+An end-to-end Deep Learning Computer Vision system capable of classifying images into **16 popular animal categories** using **MobileNetV2 Transfer Learning**, real-world photographic datasets, and an interactive **Streamlit** web application.
 
 ---
 
-## 🚀 Features
+## Features
 
-- **10 Animal Categories**:
-  - 🦋 Butterfly • 🐱 Cat • 🐔 Chicken • 🐮 Cow • 🐶 Dog
-  - 🐘 Elephant • 🐎 Horse • 🐑 Sheep • 🕷️ Spider • 🐿️ Squirrel
-- **Transfer Learning Backbone**: Uses pre-trained Google MobileNetV2 with ImageNet feature representations.
+- **16 Animal Categories**:
+  - Butterfly • Camel • Cat • Chicken
+  - Cow • Dog • Elephant • Goat
+  - Horse • Lion • Monkey • Rabbit
+  - Sheep • Spider • Squirrel • Tiger
+- **Transfer Learning Backbone**: Pre-trained Google MobileNetV2 with ImageNet feature representations.
 - **Two-Phase Multi-Class Training**:
   - *Phase 1*: Feature extraction with frozen base model.
   - *Phase 2*: Fine-tuning top convolutional layers for precise domain adaptation.
 - **Data Augmentation**: Real-time random horizontal flips, rotations (15%), and zoom (10%) to prevent overfitting.
 - **Interactive Streamlit Web Dashboard**:
   - Drag-and-drop file upload for custom animal photos.
-  - Instant sample selector from the Kaggle Animals-10 dataset catalog.
+  - Instant sample selector from the dataset catalog across all 16 categories.
   - Top-ranked probability breakdown with confidence percentages.
-  - Full 10-class dataset preview gallery.
+  - Low-confidence alert for out-of-distribution or ambiguous inputs.
+  - Full 16-class dataset preview gallery.
 - **CLI Mode**: Fast headless terminal inference via `python main.py --image <path>`.
 
 ---
 
-## 📊 Model Performance
+## Model Performance
 
-- **Validation Accuracy**: 90.00%
-- **Validation Loss**: 0.3988
+- **Validation Accuracy**: 86.81%
+- **Validation Loss**: 0.4357
 - **Input Resolution**: 160 x 160 px
-- **Architecture**: MobileNetV2 + GlobalAveragePooling2D + Dropout(0.3) + Dense(10, Softmax)
+- **Architecture**: MobileNetV2 + GlobalAveragePooling2D + Dropout(0.3) + Dense(16, Softmax)
 
 ---
 
-## 🛠️ Installation & Setup
+## Installation & Setup
 
 1. **Clone the repository:**
    ```bash
@@ -47,7 +50,7 @@ An end-to-end Deep Learning Computer Vision system capable of classifying images
 
 ---
 
-## 💻 How to Run
+## How to Run
 
 ### 1. Launch the Web Application
 ```bash
@@ -57,9 +60,9 @@ streamlit run main.py --server.port 8502
 
 ### 2. Command Line Prediction
 ```bash
-python main.py --image elephant/0.jpg
-python main.py --image horse/0.jpg
-python main.py --image dog/0.jpg
+python main.py --image rabbit/0.jpg
+python main.py --image lion/0.jpg
+python main.py --image camel/0.jpg
 ```
 
 ### 3. Re-train the Model
@@ -69,22 +72,28 @@ python train.py
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```text
-├── butterfly/                # Kaggle Animals-10 real photos
+├── butterfly/                # Butterfly real photos
+├── camel/                    # Camel real photos
 ├── cat/                      # Cat image dataset
 ├── chicken/                  # Chicken real photos
 ├── cow/                      # Cow real photos
 ├── dog/                      # Dog image dataset
 ├── elephant/                 # Elephant real photos
+├── goat/                     # Goat real photos
 ├── horse/                    # Horse real photos
+├── lion/                     # Lion real photos
+├── monkey/                   # Monkey real photos
+├── rabbit/                   # Rabbit real photos
 ├── sheep/                    # Sheep real photos
 ├── spider/                   # Spider real photos
 ├── squirrel/                 # Squirrel real photos
+├── tiger/                    # Tiger real photos
 ├── model/                    # Saved model weights & artifacts
-│   ├── classes.json          # 10-class label mapping
-│   ├── pet_classifier.keras  # Trained multi-class Keras model (22 MB)
+│   ├── classes.json          # 16-class label mapping
+│   ├── pet_classifier.keras  # Trained multi-class Keras model
 │   └── training_history.png  # Accuracy & loss curves
 ├── .gitignore
 ├── main.py                   # Streamlit app & CLI inference script

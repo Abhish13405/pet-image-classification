@@ -1,8 +1,8 @@
 """
-10-Animal Image Classification - Model Training Pipeline
+16-Animal Image Classification - Model Training Pipeline
 Trains a transfer learning model (MobileNetV2) with data augmentation
-to classify 10 popular animal categories from the Kaggle Animals-10 dataset:
-Butterfly, Cat, Chicken, Cow, Dog, Elephant, Horse, Sheep, Spider, Squirrel.
+to classify 16 popular animal categories:
+Butterfly, Camel, Cat, Chicken, Cow, Dog, Elephant, Goat, Horse, Lion, Monkey, Rabbit, Sheep, Spider, Squirrel, Tiger.
 """
 
 import os
@@ -32,10 +32,11 @@ MODEL_PATH = os.path.join(MODEL_DIR, "pet_classifier.keras")
 HISTORY_PLOT_PATH = os.path.join(MODEL_DIR, "training_history.png")
 CLASSES_JSON_PATH = os.path.join(MODEL_DIR, "classes.json")
 
-# 10 Animal Categories
+# 16 Animal Categories (Expanded with Rabbit, Goat, Lion, Tiger, Monkey, Camel)
 TARGET_CLASSES = [
-    "butterfly", "cat", "chicken", "cow", "dog",
-    "elephant", "horse", "sheep", "spider", "squirrel"
+    "butterfly", "camel", "cat", "chicken", "cow", "dog",
+    "elephant", "goat", "horse", "lion", "monkey",
+    "rabbit", "sheep", "spider", "squirrel", "tiger"
 ]
 
 
@@ -192,7 +193,7 @@ def train():
     os.makedirs(MODEL_DIR, exist_ok=True)
 
     print("=" * 65)
-    print("10-Animal Image Classification - Multi-Class Training Pipeline")
+    print("16-Animal Image Classification - Multi-Class Training Pipeline")
     print("=" * 65)
 
     # 1. Prepare data

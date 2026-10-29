@@ -193,10 +193,12 @@ def run_streamlit_app():
         st.header("Project Details")
         st.info("**Project**: Pet Image Classification\n\n"
                 "**Backbone**: MobileNetV2 (Transfer Learning)\n\n"
-                "**Dataset**: Kaggle Animals-10\n\n"
-                "**Categories (10)**:\n\n"
-                "Butterfly • Cat • Chicken • Cow • Dog\n\n"
-                "Elephant • Horse • Sheep • Spider • Squirrel")
+                "**Dataset**: Kaggle & Wildlife Dataset (16 Classes)\n\n"
+                "**Categories (16)**:\n\n"
+                "Butterfly • Camel • Cat • Chicken\n\n"
+                "Cow • Dog • Elephant • Goat\n\n"
+                "Horse • Lion • Monkey • Rabbit\n\n"
+                "Sheep • Spider • Squirrel • Tiger")
 
         if os.path.exists(MODEL_PATH):
             st.success("Model loaded: `pet_classifier.keras`")
@@ -231,11 +233,19 @@ def run_streamlit_app():
             selected_image = None
             image_name = ""
 
-            # Available category folders
-            cat_options = [
-                c for c in ["butterfly", "cat", "chicken", "cow", "dog", "elephant", "horse", "sheep", "spider", "squirrel"]
-                if os.path.isdir(os.path.join(CURRENT_DIR, c))
-            ]
+            # Load active category folders
+            _, label_map = load_model_and_labels()
+            if label_map:
+                cat_options = [c.lower() for c in label_map.values() if os.path.isdir(os.path.join(CURRENT_DIR, c.lower()))]
+            else:
+                cat_options = [
+                    c for c in [
+                        "butterfly", "camel", "cat", "chicken", "cow", "dog",
+                        "elephant", "goat", "horse", "lion", "monkey",
+                        "rabbit", "sheep", "spider", "squirrel", "tiger"
+                    ]
+                    if os.path.isdir(os.path.join(CURRENT_DIR, c))
+                ]
 
             if input_mode == "Upload Image File":
                 uploaded_file = st.file_uploader(
@@ -298,12 +308,15 @@ def run_streamlit_app():
                             st.write(f"**{c_prob:.2f}%**")
                         st.progress(float(min(c_prob / 100.0, 1.0)))
 
+                    if res["confidence"] < 60.0:
+                        st.warning("Low Confidence Warning: The model confidence is under 60%. The image might belong to an animal category outside the 16 trained classes, or the picture angle/lighting may be ambiguous.")
+
             else:
                 st.info("Upload an image or choose a dataset sample to view classification results.")
 
     with tabs[1]:
         st.subheader("Pet Dataset Gallery")
-        st.caption("Showing 4 real sample images from each of the 10 animal classes in the project dataset.")
+        st.caption(f"Showing sample real photographs from each of the {len(cat_options)} animal classes in the project dataset.")
 
         for c in cat_options:
             c_samples = sorted(glob.glob(os.path.join(CURRENT_DIR, c, "*.[jJ][pP][gG]")))[:4]
@@ -318,13 +331,13 @@ def run_streamlit_app():
     with tabs[2]:
         st.subheader("Model Architecture & Technical Engineering")
         st.markdown("""
-        - **Dataset Benchmark**: Kaggle Animals-10 raw image dataset spanning 10 distinct animal classes.
-        - **Transfer Learning Backbone**: Pre-trained Google MobileNetV2 architecture with ImageNet feature weights.
-        - **Data Augmentation**: Runtime `RandomFlip("horizontal")`, `RandomRotation(0.15)`, and `RandomZoom(0.1)` layers.
+        - **Dataset Benchmark**: Multi-class animal dataset spanning **16 distinct animal categories** (Butterfly, Camel, Cat, Chicken, Cow, Dog, Elephant, Goat, Horse, Lion, Monkey, Rabbit, Sheep, Spider, Squirrel, Tiger).
+        - **Transfer Learning Backbone**: Pre-trained Google MobileNetV2 architecture with ImageNet feature representations.
+        - **Data Augmentation**: Runtime `RandomFlip("horizontal")`, `RandomRotation(0.15)`, and `RandomZoom(0.1)` layers to boost generalization.
         - **Two-Phase Multi-Class Training**:
-            1. **Feature Extraction**: Base model frozen; custom classification head (`GlobalAveragePooling2D` + `Dropout(0.3)` + `Dense(10, softmax)`) trained with Adam.
+            1. **Feature Extraction**: Base model frozen; custom classification head (`GlobalAveragePooling2D` + `Dropout(0.3)` + `Dense(16, softmax)`) trained with Adam.
             2. **Fine-Tuning**: Unfreezes the top 30 layers with micro learning rate (`1e-5`) for precise domain adaptation.
-        - **Loss Function**: `SparseCategoricalCrossentropy` for optimal multi-class probability alignment.
+        - **Loss Function**: `SparseCategoricalCrossentropy` for multi-class probability alignment.
         """)
 
 
