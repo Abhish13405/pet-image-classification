@@ -1,6 +1,8 @@
 """
-Pet Image Classification - Model Training Pipeline
-Trains a transfer learning model (MobileNetV2) with data augmentation to classify Cats vs Dogs.
+10-Animal Image Classification - Model Training Pipeline
+Trains a transfer learning model (MobileNetV2) with data augmentation
+to classify 10 popular animal categories from the Kaggle Animals-10 dataset:
+Butterfly, Cat, Chicken, Cow, Dog, Elephant, Horse, Sheep, Spider, Squirrel.
 """
 
 import os
@@ -19,9 +21,9 @@ np.random.seed(SEED)
 tf.random.set_seed(SEED)
 
 IMAGE_SIZE = (160, 160)
-BATCH_SIZE = 8
-INITIAL_EPOCHS = 15
-FINE_TUNE_EPOCHS = 10
+BATCH_SIZE = 16
+INITIAL_EPOCHS = 12
+FINE_TUNE_EPOCHS = 8
 TOTAL_EPOCHS = INITIAL_EPOCHS + FINE_TUNE_EPOCHS
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -30,33 +32,51 @@ MODEL_PATH = os.path.join(MODEL_DIR, "pet_classifier.keras")
 HISTORY_PLOT_PATH = os.path.join(MODEL_DIR, "training_history.png")
 CLASSES_JSON_PATH = os.path.join(MODEL_DIR, "classes.json")
 
+# 10 Animal Categories
+TARGET_CLASSES = [
+    "butterfly", "cat", "chicken", "cow", "dog",
+    "elephant", "horse", "sheep", "spider", "squirrel"
+]
+
 
 def load_dataset(base_dir):
     """
-    Scans cat and dog folders and creates balanced train and validation splits.
+    Scans each animal directory, creates stratified balanced train and validation splits.
     """
-    cat_files = glob.glob(os.path.join(base_dir, "cat", "*.[jJ][pP][gG]")) + \
-                glob.glob(os.path.join(base_dir, "cat", "*.[pP][nN][gG]"))
-    dog_files = glob.glob(os.path.join(base_dir, "dog", "*.[jJ][pP][gG]")) + \
-                glob.glob(os.path.join(base_dir, "dog", "*.[pP][nN][gG]"))
+    class_names = []
+    for c in TARGET_CLASSES:
+        d = os.path.join(base_dir, c)
+        if os.path.isdir(d):
+            imgs = glob.glob(os.path.join(d, "*.[jJ][pP][gG]")) + glob.glob(os.path.join(d, "*.[pP][nN][gG]"))
+            if len(imgs) > 0:
+                class_names.append(c)
 
-    print(f"Found {len(cat_files)} cat images and {len(dog_files)} dog images.")
+    class_names = sorted(class_names)
+    class_to_idx = {name: idx for idx, name in enumerate(class_names)}
+    idx_to_class = {str(idx): name.capitalize() for idx, name in enumerate(class_names)}
 
-    if not cat_files or not dog_files:
-        raise ValueError("Could not find cat or dog images in dataset directory.")
+    train_files, train_labels = [], []
+    val_files, val_labels = [], []
 
-    random.shuffle(cat_files)
-    random.shuffle(dog_files)
+    print(f"Detected {len(class_names)} active classes: {class_names}")
 
-    # 80/20 train/validation split
-    cat_split = int(len(cat_files) * 0.8)
-    dog_split = int(len(dog_files) * 0.8)
+    for c in class_names:
+        folder = os.path.join(base_dir, c)
+        files = glob.glob(os.path.join(folder, "*.[jJ][pP][gG]")) + glob.glob(os.path.join(folder, "*.[pP][nN][gG]"))
+        random.shuffle(files)
 
-    train_files = cat_files[:cat_split] + dog_files[:dog_split]
-    train_labels = [0] * cat_split + [1] * dog_split
+        split_idx = int(len(files) * 0.8)
+        c_train = files[:split_idx]
+        c_val = files[split_idx:]
 
-    val_files = cat_files[cat_split:] + dog_files[dog_split:]
-    val_labels = [0] * (len(cat_files) - cat_split) + [1] * (len(dog_files) - dog_split)
+        label_idx = class_to_idx[c]
+        train_files.extend(c_train)
+        train_labels.extend([label_idx] * len(c_train))
+
+        val_files.extend(c_val)
+        val_labels.extend([label_idx] * len(c_val))
+
+        print(f"  • {c:10s}: {len(c_train)} train, {len(c_val)} val (Total: {len(files)})")
 
     # Shuffle train and val pairs
     train_combined = list(zip(train_files, train_labels))
@@ -67,16 +87,14 @@ def load_dataset(base_dir):
     random.shuffle(val_combined)
     val_files, val_labels = zip(*val_combined)
 
-    print(f"Training set: {len(train_files)} images ({train_labels.count(0)} cats, {train_labels.count(1)} dogs)")
-    print(f"Validation set: {len(val_files)} images ({val_labels.count(0)} cats, {val_labels.count(1)} dogs)")
+    print(f"\nTotal Training Samples:   {len(train_files)}")
+    print(f"Total Validation Samples: {len(val_files)}")
 
-    return list(train_files), list(train_labels), list(val_files), list(val_labels)
+    return list(train_files), list(train_labels), list(val_files), list(val_labels), idx_to_class
 
 
 def preprocess_image(file_path, label):
-    """
-    Reads an image file, decodes and resizes to target shape.
-    """
+    """Reads image file, decodes JPEG, and resizes to target shape."""
     img_bytes = tf.io.read_file(file_path)
     img = tf.image.decode_jpeg(img_bytes, channels=3)
     img = tf.image.resize(img, IMAGE_SIZE)
@@ -84,9 +102,7 @@ def preprocess_image(file_path, label):
 
 
 def create_tf_dataset(files, labels, is_training=True):
-    """
-    Builds an optimized tf.data.Dataset pipeline.
-    """
+    """Builds an optimized tf.data.Dataset pipeline."""
     dataset = tf.data.Dataset.from_tensor_slices((files, labels))
     dataset = dataset.map(preprocess_image, num_parallel_calls=tf.data.AUTOTUNE)
 
@@ -98,9 +114,10 @@ def create_tf_dataset(files, labels, is_training=True):
     return dataset
 
 
-def build_model():
+def build_model(num_classes):
     """
-    Builds a Transfer Learning model using MobileNetV2 with Data Augmentation.
+    Builds a Transfer Learning model using MobileNetV2 with Data Augmentation
+    configured for multi-class classification.
     """
     data_augmentation = tf.keras.Sequential([
         tf.keras.layers.RandomFlip("horizontal"),
@@ -121,17 +138,15 @@ def build_model():
 
     x = base_model(x, training=False)
     x = tf.keras.layers.GlobalAveragePooling2D()(x)
-    x = tf.keras.layers.Dropout(0.25)(x)
-    outputs = tf.keras.layers.Dense(1, activation="sigmoid", name="predictions")(x)
+    x = tf.keras.layers.Dropout(0.3)(x)
+    outputs = tf.keras.layers.Dense(num_classes, activation="softmax", name="predictions")(x)
 
-    model = tf.keras.Model(inputs=inputs, outputs=outputs, name="PetClassifier_MobileNetV2")
+    model = tf.keras.Model(inputs=inputs, outputs=outputs, name="AnimalClassifier_10Classes")
     return model, base_model
 
 
 def plot_and_save_history(history_initial, history_fine, save_path):
-    """
-    Plots training and validation accuracy and loss over all epochs.
-    """
+    """Plots multi-class training and validation accuracy and loss over all epochs."""
     acc = history_initial.history["accuracy"] + (history_fine.history["accuracy"] if history_fine else [])
     val_acc = history_initial.history["val_accuracy"] + (history_fine.history["val_accuracy"] if history_fine else [])
 
@@ -148,7 +163,7 @@ def plot_and_save_history(history_initial, history_fine, save_path):
     plt.plot(epochs_range, val_acc, label="Validation Accuracy", color="#16a34a", linewidth=2)
     if history_fine:
         plt.axvline(x=INITIAL_EPOCHS, color="gray", linestyle="--", label="Start Fine-Tuning")
-    plt.title("Classification Accuracy", fontsize=13, fontweight="bold")
+    plt.title("Multi-Class Classification Accuracy", fontsize=13, fontweight="bold")
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy")
     plt.ylim([0, 1.05])
@@ -161,7 +176,7 @@ def plot_and_save_history(history_initial, history_fine, save_path):
     plt.plot(epochs_range, val_loss, label="Validation Loss", color="#ea580c", linewidth=2)
     if history_fine:
         plt.axvline(x=INITIAL_EPOCHS, color="gray", linestyle="--", label="Start Fine-Tuning")
-    plt.title("Binary Cross-Entropy Loss", fontsize=13, fontweight="bold")
+    plt.title("Sparse Categorical Cross-Entropy Loss", fontsize=13, fontweight="bold")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend(loc="upper right")
@@ -176,25 +191,27 @@ def plot_and_save_history(history_initial, history_fine, save_path):
 def train():
     os.makedirs(MODEL_DIR, exist_ok=True)
 
-    print("=" * 60)
-    print("Pet Image Classification - Training Pipeline")
-    print("=" * 60)
+    print("=" * 65)
+    print("10-Animal Image Classification - Multi-Class Training Pipeline")
+    print("=" * 65)
 
     # 1. Prepare data
-    train_files, train_labels, val_files, val_labels = load_dataset(CURRENT_DIR)
+    train_files, train_labels, val_files, val_labels, idx_to_class = load_dataset(CURRENT_DIR)
+    num_classes = len(idx_to_class)
+    
     train_ds = create_tf_dataset(train_files, train_labels, is_training=True)
     val_ds = create_tf_dataset(val_files, val_labels, is_training=False)
 
     # 2. Build model
-    print("\nBuilding MobileNetV2 Transfer Learning model...")
-    model, base_model = build_model()
+    print(f"\nBuilding MobileNetV2 Multi-Class ({num_classes} categories) Model...")
+    model, base_model = build_model(num_classes)
     model.summary()
 
-    # Phase 1: Feature Extraction (Freeze base model)
+    # Phase 1: Feature Extraction
     print("\n[Phase 1] Training top classification head...")
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-        loss="binary_crossentropy",
+        loss="sparse_categorical_crossentropy",
         metrics=["accuracy"]
     )
 
@@ -205,17 +222,17 @@ def train():
         verbose=1
     )
 
-    # Phase 2: Fine-Tuning (Unfreeze top 25 layers of base model with lower LR)
-    print("\n[Phase 2] Fine-tuning top layers of MobileNetV2...")
+    # Phase 2: Fine-Tuning top 30 layers
+    print("\n[Phase 2] Fine-tuning upper layers of MobileNetV2...")
     base_model.trainable = True
-    fine_tune_at = len(base_model.layers) - 25
+    fine_tune_at = len(base_model.layers) - 30
 
     for layer in base_model.layers[:fine_tune_at]:
         layer.trainable = False
 
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=1e-5),
-        loss="binary_crossentropy",
+        loss="sparse_categorical_crossentropy",
         metrics=["accuracy"]
     )
 
@@ -228,21 +245,20 @@ def train():
     )
 
     # 3. Final Evaluation
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 65)
     print("Final Model Evaluation on Validation Set:")
     val_loss, val_acc = model.evaluate(val_ds, verbose=0)
     print(f"Validation Loss:     {val_loss:.4f}")
     print(f"Validation Accuracy: {val_acc * 100:.2f}%")
-    print("=" * 60)
+    print("=" * 65)
 
     # 4. Save Model and Metadata
     print(f"\nSaving model to {MODEL_PATH}...")
     model.save(MODEL_PATH)
 
-    class_mapping = {"0": "Cat", "1": "Dog"}
     with open(CLASSES_JSON_PATH, "w") as f:
-        json.dump(class_mapping, f, indent=4)
-    print(f"Class labels saved to {CLASSES_JSON_PATH}")
+        json.dump(idx_to_class, f, indent=4)
+    print(f"Class labels saved to {CLASSES_JSON_PATH}: {idx_to_class}")
 
     # 5. Plot history
     plot_and_save_history(history_phase1, history_phase2, HISTORY_PLOT_PATH)

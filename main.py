@@ -1,7 +1,10 @@
 """
-Pet Image Classification - Inference Application & Web UI
+10-Animal Image Classification - Inference Application & Web UI
+Supports 10 popular animal categories from Kaggle Animals-10:
+Butterfly, Cat, Chicken, Cow, Dog, Elephant, Horse, Sheep, Spider, Squirrel.
+
 Provides:
-  1. Interactive Streamlit Web UI (Streamlit mode or `python main.py`)
+  1. Interactive Streamlit Web UI (`streamlit run main.py` or `python main.py`)
   2. Command-Line Interface (`python main.py --image <path>`)
 """
 
@@ -10,7 +13,6 @@ import sys
 import json
 import glob
 import argparse
-
 import numpy as np
 from PIL import Image
 
@@ -21,12 +23,31 @@ CLASSES_PATH = os.path.join(MODEL_DIR, "classes.json")
 HISTORY_PLOT_PATH = os.path.join(MODEL_DIR, "training_history.png")
 IMAGE_SIZE = (160, 160)
 
+ANIMAL_ICONS = {
+    "butterfly": "🦋",
+    "cat": "🐱",
+    "chicken": "🐔",
+    "cow": "🐮",
+    "dog": "🐶",
+    "elephant": "🐘",
+    "horse": "🐎",
+    "sheep": "🐑",
+    "spider": "🕷️",
+    "squirrel": "🐿️",
+}
+
 _CACHED_MODEL = None
 _CACHED_CLASSES = None
 
 
+def get_animal_icon(class_name):
+    """Returns matching emoji icon for animal class name."""
+    clean_name = str(class_name).lower().strip()
+    return ANIMAL_ICONS.get(clean_name, "🐾")
+
+
 def load_model_and_labels():
-    """Loads and caches the trained pet classification model and class mappings."""
+    """Loads and caches the trained classification model and class mappings."""
     global _CACHED_MODEL, _CACHED_CLASSES
     import tensorflow as tf
 
@@ -43,21 +64,24 @@ def load_model_and_labels():
             with open(CLASSES_PATH, "r") as f:
                 _CACHED_CLASSES = json.load(f)
         else:
-            _CACHED_CLASSES = {"0": "Cat", "1": "Dog"}
+            _CACHED_CLASSES = {
+                "0": "Butterfly", "1": "Cat", "2": "Chicken", "3": "Cow", "4": "Dog",
+                "5": "Elephant", "6": "Horse", "7": "Sheep", "8": "Spider", "9": "Squirrel"
+            }
 
     return _CACHED_MODEL, _CACHED_CLASSES
 
 
 def predict_image(image_input):
     """
-    Runs inference on an image (PIL Image or file path).
+    Runs multi-class inference on an image (PIL Image or file path).
     Returns dict:
       {
-         'class_name': 'Cat' | 'Dog',
+         'class_name': str,
          'confidence': float (0-100),
-         'cat_prob': float (0-100),
-         'dog_prob': float (0-100),
-         'raw_score': float
+         'icon': str,
+         'top_predictions': list of (class_name, confidence, icon),
+         'all_probabilities': dict of {class_name: probability}
       }
     """
     model, classes = load_model_and_labels()
@@ -73,25 +97,46 @@ def predict_image(image_input):
     img_array = np.array(img_resized, dtype=np.float32)
     img_batch = np.expand_dims(img_array, axis=0)
 
-    # Sigmoid output represents P(Dog)
-    prediction = model.predict(img_batch, verbose=0)
-    dog_prob = float(prediction[0][0])
-    cat_prob = 1.0 - dog_prob
+    # Softmax output across classes
+    raw_prediction = model.predict(img_batch, verbose=0)[0]
 
-    if dog_prob >= 0.5:
-        class_name = classes.get("1", "Dog")
-        confidence = dog_prob * 100.0
+    # Handle multi-class softmax vs binary sigmoid output
+    if len(raw_prediction) > 1:
+        top_idx = int(np.argmax(raw_prediction))
+        top_class = classes.get(str(top_idx), f"Class {top_idx}")
+        top_confidence = float(raw_prediction[top_idx]) * 100.0
+
+        all_probs = {}
+        ranked_list = []
+        for idx, prob in enumerate(raw_prediction):
+            c_name = classes.get(str(idx), f"Class {idx}")
+            c_pct = round(float(prob) * 100.0, 2)
+            c_icon = get_animal_icon(c_name)
+            all_probs[c_name] = c_pct
+            ranked_list.append((c_name, c_pct, c_icon))
+
+        ranked_list.sort(key=lambda x: x[1], reverse=True)
+
+        return {
+            "class_name": top_class,
+            "confidence": round(top_confidence, 2),
+            "icon": get_animal_icon(top_class),
+            "top_predictions": ranked_list[:5],
+            "all_probabilities": all_probs
+        }
     else:
-        class_name = classes.get("0", "Cat")
-        confidence = cat_prob * 100.0
-
-    return {
-        "class_name": class_name,
-        "confidence": round(confidence, 2),
-        "cat_prob": round(cat_prob * 100.0, 2),
-        "dog_prob": round(dog_prob * 100.0, 2),
-        "raw_score": float(dog_prob)
-    }
+        # Fallback for binary model
+        dog_prob = float(raw_prediction[0])
+        cat_prob = 1.0 - dog_prob
+        top_class = "Dog" if dog_prob >= 0.5 else "Cat"
+        top_conf = (dog_prob if dog_prob >= 0.5 else cat_prob) * 100.0
+        return {
+            "class_name": top_class,
+            "confidence": round(top_conf, 2),
+            "icon": get_animal_icon(top_class),
+            "top_predictions": [("Dog", round(dog_prob * 100, 2), "🐶"), ("Cat", round(cat_prob * 100, 2), "🐱")],
+            "all_probabilities": {"Dog": round(dog_prob * 100, 2), "Cat": round(cat_prob * 100, 2)}
+        }
 
 
 if sys.platform == "win32":
@@ -103,9 +148,9 @@ if sys.platform == "win32":
 
 def run_cli(image_path):
     """Command-line interface prediction function."""
-    print("=" * 50)
-    print("Pet Image Classification - Prediction")
-    print("=" * 50)
+    print("=" * 55)
+    print("10-Animal Image Classification - Prediction")
+    print("=" * 55)
 
     if not os.path.exists(image_path):
         print(f"Error: Image file '{image_path}' does not exist.")
@@ -113,12 +158,12 @@ def run_cli(image_path):
 
     try:
         result = predict_image(image_path)
-        icon = "[CAT]" if result["class_name"].lower() == "cat" else "[DOG]"
-        print(f"\nResult: {icon} {result['class_name'].upper()}")
+        print(f"\nResult: [{result['class_name'].upper()}]")
         print(f"Confidence: {result['confidence']:.2f}%")
-        print(f"  • Cat Probability: {result['cat_prob']:.2f}%")
-        print(f"  • Dog Probability: {result['dog_prob']:.2f}%")
-        print("=" * 50)
+        print("\nTop Ranked Class Probabilities:")
+        for name, prob, icon in result["top_predictions"]:
+            print(f"  • {name:12s}: {prob:6.2f}%")
+        print("=" * 55)
     except Exception as e:
         print(f"Error during prediction: {e}")
         sys.exit(1)
@@ -141,11 +186,11 @@ def safe_image(img, caption=None):
 
 
 def run_streamlit_app():
-    """Interactive Streamlit Web Dashboard."""
+    """Interactive Streamlit Web Dashboard for 10 Animals."""
     import streamlit as st
 
     st.set_page_config(
-        page_title="Pet Classifier | Cat vs Dog",
+        page_title="10-Animal Classifier | Deep Learning",
         page_icon="🐾",
         layout="wide",
         initial_sidebar_state="expanded"
@@ -165,51 +210,38 @@ def run_streamlit_app():
             color: #4b5563;
             margin-bottom: 1.5rem;
         }
-        .prediction-card {
-            background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%);
-            border-radius: 12px;
-            padding: 1.5rem;
-            border-left: 6px solid #2563eb;
-            margin-top: 1rem;
-        }
-        .pet-badge {
-            display: inline-block;
-            padding: 0.35rem 0.8rem;
-            font-size: 1.4rem;
-            font-weight: 700;
-            border-radius: 9999px;
-            background: #2563eb;
-            color: white;
-        }
         </style>
     """, unsafe_allow_html=True)
 
     # Sidebar
     with st.sidebar:
-        st.header("Project Details")
-        st.info("**Project**: Pet Image Classification\n\n"
+        st.header("⚙️ Project Details")
+        st.info("**Project**: 10-Animal Image Classification\n\n"
                 "**Backbone**: MobileNetV2 (Transfer Learning)\n\n"
-                "**Classes**: Cat (0), Dog (1)\n\n"
-                "**Input Resolution**: 160 x 160 px")
+                "**Dataset**: Kaggle Animals-10\n\n"
+                "**Categories (10)**:\n"
+                "🦋 Butterfly • 🐱 Cat • 🐔 Chicken\n\n"
+                "🐮 Cow • 🐶 Dog • 🐘 Elephant\n\n"
+                "🐎 Horse • 🐑 Sheep • 🕷️ Spider • 🐿️ Squirrel")
 
         if os.path.exists(MODEL_PATH):
-            st.success(" Model loaded: `pet_classifier.keras`")
+            st.success("✅ Model loaded: `pet_classifier.keras`")
         else:
-            st.error(" Model not trained yet! Run `python train.py` first.")
+            st.error("⚠️ Model not trained yet! Run `python train.py` first.")
 
         st.divider()
 
         if os.path.exists(HISTORY_PLOT_PATH):
-            st.subheader(" Training History")
+            st.subheader("📈 Training History")
             safe_image(HISTORY_PLOT_PATH, caption="Accuracy & Loss Curves")
 
-        st.caption("Internship ML Project • Deep Learning with TensorFlow & Keras")
+        st.caption("Internship ML Project • Abhishek Kushwaha • B.Tech CSE (CCML)")
 
     # Main Page Header
-    st.markdown('<div class="main-header"> Pet Image Classifier</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Upload an image of a cat or dog, or pick a sample from the dataset to test deep learning predictions.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">🐾 10-Animal Image Classifier</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">Upload a real photograph of an animal, or pick a sample from the Kaggle Animals-10 dataset to test deep learning predictions.</div>', unsafe_allow_html=True)
 
-    tabs = st.tabs([" Predict Pet", "Dataset Gallery & Test", "ℹ About the Model"])
+    tabs = st.tabs(["🔍 Predict Animal", "📁 10-Animal Dataset Gallery", "ℹ️ Model Architecture & Benchmark"])
 
     with tabs[0]:
         col1, col2 = st.columns([1, 1], gap="large")
@@ -225,30 +257,37 @@ def run_streamlit_app():
             selected_image = None
             image_name = ""
 
+            # Available category folders
+            cat_options = [
+                c for c in ["butterfly", "cat", "chicken", "cow", "dog", "elephant", "horse", "sheep", "spider", "squirrel"]
+                if os.path.isdir(os.path.join(CURRENT_DIR, c))
+            ]
+
             if input_mode == "Upload Image File":
                 uploaded_file = st.file_uploader(
-                    "Choose a pet photo (JPG, JPEG, PNG)...",
+                    "Choose an animal photo (JPG, JPEG, PNG)...",
                     type=["jpg", "jpeg", "png"]
                 )
                 if uploaded_file is not None:
                     selected_image = Image.open(uploaded_file)
                     image_name = uploaded_file.name
             else:
-                cat_samples = sorted(glob.glob(os.path.join(CURRENT_DIR, "cat", "*.jpg")))
-                dog_samples = sorted(glob.glob(os.path.join(CURRENT_DIR, "dog", "*.jpg")))
+                sample_category = st.selectbox(
+                    "Select animal category:",
+                    cat_options,
+                    format_func=lambda x: f"{get_animal_icon(x)} {x.capitalize()}"
+                )
+                sample_files = sorted(glob.glob(os.path.join(CURRENT_DIR, sample_category, "*.[jJ][pP][gG]")))
 
-                sample_type = st.selectbox("Sample category:", ["Cat Samples", "Dog Samples"])
-                sample_list = cat_samples if sample_type == "Cat Samples" else dog_samples
-
-                if sample_list:
+                if sample_files:
                     selected_path = st.selectbox(
                         "Pick a sample image:",
-                        sample_list,
+                        sample_files,
                         format_func=lambda p: os.path.basename(p)
                     )
                     if selected_path:
                         selected_image = Image.open(selected_path)
-                        image_name = os.path.basename(selected_path)
+                        image_name = f"{sample_category}/{os.path.basename(selected_path)}"
 
             if selected_image is not None:
                 safe_image(selected_image, caption=f"Selected: {image_name}")
@@ -259,66 +298,64 @@ def run_streamlit_app():
                 if not os.path.exists(MODEL_PATH):
                     st.error("Model file not found. Please run `python train.py` first.")
                 else:
-                    with st.spinner("Analyzing image features with MobileNetV2..."):
+                    with st.spinner("Analyzing visual features with MobileNetV2..."):
                         res = predict_image(selected_image)
 
-                    icon = "🐱" if res["class_name"].lower() == "cat" else "🐶"
-                    badge_color = "#059669" if res["confidence"] > 80 else "#d97706"
+                    badge_color = "#059669" if res["confidence"] > 75 else "#d97706"
 
                     st.markdown(f"""
                         <div style="background:#f8fafc; border: 2px solid #e2e8f0; border-radius:12px; padding: 20px; margin-bottom: 20px;">
-                            <div style="font-size: 14px; text-transform: uppercase; color: #64748b; font-weight: 600;">Prediction</div>
-                            <div style="font-size: 32px; font-weight: 800; color: #1e293b; margin: 8px 0;">
-                                {icon} {res['class_name'].upper()}
+                            <div style="font-size: 14px; text-transform: uppercase; color: #64748b; font-weight: 600;">Top Prediction</div>
+                            <div style="font-size: 34px; font-weight: 800; color: #1e293b; margin: 8px 0;">
+                                {res['icon']} {res['class_name'].upper()}
                             </div>
-                            <div style="font-size: 16px; color: {badge_color}; font-weight: 600;">
-                                Confidence: {res['confidence']:.1f}%
+                            <div style="font-size: 17px; color: {badge_color}; font-weight: 700;">
+                                Confidence: {res['confidence']:.2f}%
                             </div>
                         </div>
                     """, unsafe_allow_html=True)
 
-                    st.markdown("#### Confidence Breakdown")
-                    st.write(f"**Cat Probability:** {res['cat_prob']:.2f}%")
-                    st.progress(float(res['cat_prob'] / 100.0))
+                    st.markdown("#### Probability Distribution (Top Ranked)")
+                    for c_name, c_prob, c_icon in res["top_predictions"]:
+                        col_l, col_r = st.columns([2, 1])
+                        with col_l:
+                            st.write(f"{c_icon} **{c_name}**")
+                        with col_r:
+                            st.write(f"**{c_prob:.2f}%**")
+                        st.progress(float(min(c_prob / 100.0, 1.0)))
 
-                    st.write(f" **Dog Probability:** {res['dog_prob']:.2f}%")
-                    st.progress(float(res['dog_prob'] / 100.0))
-
-                    st.info(f"Raw Sigmoid Output: `{res['raw_score']:.4f}` (Values < 0.5 classify as Cat, ≥ 0.5 as Dog)")
             else:
-                st.info("Upload an image or choose a dataset sample to view classification results.")
+                st.info("👈 Upload an image or choose a dataset sample to view classification results.")
 
     with tabs[1]:
-        st.subheader("Dataset Samples Quick Preview")
-        cat_samples = sorted(glob.glob(os.path.join(CURRENT_DIR, "cat", "*.jpg")))[:8]
-        dog_samples = sorted(glob.glob(os.path.join(CURRENT_DIR, "dog", "*.jpg")))[:8]
+        st.subheader("Kaggle Animals-10 Dataset Gallery")
+        st.caption("Showing 3 real sample images from each of the 10 animal classes in the project dataset.")
 
-        st.markdown("##### Sample Cats (cat/)")
-        cols = st.columns(4)
-        for idx, p in enumerate(cat_samples):
-            with cols[idx % 4]:
-                safe_image(p, caption=os.path.basename(p))
-
-        st.markdown("#####  Sample Dogs (dog/)")
-        cols = st.columns(4)
-        for idx, p in enumerate(dog_samples):
-            with cols[idx % 4]:
-                safe_image(p, caption=os.path.basename(p))
+        for c in cat_options:
+            c_samples = sorted(glob.glob(os.path.join(CURRENT_DIR, c, "*.[jJ][pP][gG]")))[:4]
+            if c_samples:
+                st.markdown(f"##### {get_animal_icon(c)} {c.capitalize()} ({c}/)")
+                cols = st.columns(4)
+                for idx, p in enumerate(c_samples):
+                    with cols[idx]:
+                        safe_image(p, caption=os.path.basename(p))
+                st.divider()
 
     with tabs[2]:
-        st.subheader("Model Architecture & Engineering Highlights")
+        st.subheader("Model Architecture & Technical Engineering")
         st.markdown("""
-        - **Transfer Learning**: Uses MobileNetV2 pre-trained on ImageNet (1.4 million images, 1000 categories).
-        - **Data Augmentation**: Integrates runtime `RandomFlip`, `RandomRotation`, and `RandomZoom` to mitigate overfitting on smaller sample counts.
-        - **Two-Phase Training**:
-            1. **Feature Extraction**: Freezes the convolutional base and trains a custom classification head (`GlobalAveragePooling2D` + `Dropout` + `Dense(1)`).
-            2. **Fine-Tuning**: Unfreezes the upper layers of MobileNetV2 with a small learning rate (`1e-5`) for precise domain adaptation.
-        - **Inference Pipeline**: Real-time batch preprocessing with Pillow, normalized with MobileNetV2 input transformations.
+        - **Dataset Benchmark**: Kaggle Animals-10 raw image dataset spanning 10 distinct animal classes.
+        - **Transfer Learning Backbone**: Pre-trained Google MobileNetV2 architecture with ImageNet feature weights.
+        - **Data Augmentation**: Runtime `RandomFlip("horizontal")`, `RandomRotation(0.15)`, and `RandomZoom(0.1)` layers.
+        - **Two-Phase Multi-Class Training**:
+            1. **Feature Extraction**: Base model frozen; custom classification head (`GlobalAveragePooling2D` + `Dropout(0.3)` + `Dense(10, softmax)`) trained with Adam.
+            2. **Fine-Tuning**: Unfreezes the top 30 layers with micro learning rate (`1e-5`) for precise domain adaptation.
+        - **Loss Function**: `SparseCategoricalCrossentropy` for optimal multi-class probability alignment.
         """)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Pet Image Classification (Cat vs Dog)")
+    parser = argparse.ArgumentParser(description="10-Animal Image Classification")
     parser.add_argument("--image", type=str, help="Path to an image to classify via CLI")
     parser.add_argument("--app", action="store_true", help="Launch Streamlit web application")
     args, unknown = parser.parse_known_args()
@@ -335,11 +372,11 @@ def main():
         # Check if user invoked 'python main.py' directly without args
         import subprocess
         print("Launching Streamlit Web Application...")
-        print("Opening browser interface at http://localhost:8501")
+        print("Opening browser interface at http://localhost:8502")
         env = os.environ.copy()
         env["STREAMLIT_RUN"] = "1"
         try:
-            subprocess.run([sys.executable, "-m", "streamlit", "run", __file__], env=env)
+            subprocess.run([sys.executable, "-m", "streamlit", "run", __file__, "--server.port", "8502"], env=env)
         except KeyboardInterrupt:
             print("\nShutting down application.")
 

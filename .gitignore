@@ -10,3 +10,4 @@ __pycache__/
 *.pptx
 *.pdf
 generate_ppt.py
+download_*.py
