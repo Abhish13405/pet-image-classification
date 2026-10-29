@@ -1,6 +1,6 @@
 """
-10-Animal Image Classification - Inference Application & Web UI
-Supports 10 popular animal categories from Kaggle Animals-10:
+Pet Image Classification - Inference Application & Web UI
+Supports popular pet and animal categories from Kaggle Animals-10:
 Butterfly, Cat, Chicken, Cow, Dog, Elephant, Horse, Sheep, Spider, Squirrel.
 
 Provides:
@@ -149,7 +149,7 @@ if sys.platform == "win32":
 def run_cli(image_path):
     """Command-line interface prediction function."""
     print("=" * 55)
-    print("10-Animal Image Classification - Prediction")
+    print("Pet Image Classification - Prediction")
     print("=" * 55)
 
     if not os.path.exists(image_path):
@@ -190,7 +190,7 @@ def run_streamlit_app():
     import streamlit as st
 
     st.set_page_config(
-        page_title="10-Animal Classifier | Deep Learning",
+        page_title="Pet Image Classifier | Deep Learning",
         page_icon="🐾",
         layout="wide",
         initial_sidebar_state="expanded"
@@ -216,7 +216,7 @@ def run_streamlit_app():
     # Sidebar
     with st.sidebar:
         st.header("⚙️ Project Details")
-        st.info("**Project**: 10-Animal Image Classification\n\n"
+        st.info("**Project**: Pet Image Classification\n\n"
                 "**Backbone**: MobileNetV2 (Transfer Learning)\n\n"
                 "**Dataset**: Kaggle Animals-10\n\n"
                 "**Categories (10)**:\n"
@@ -238,10 +238,10 @@ def run_streamlit_app():
         st.caption("Internship ML Project • Abhishek Kushwaha • B.Tech CSE (CCML)")
 
     # Main Page Header
-    st.markdown('<div class="main-header">🐾 10-Animal Image Classifier</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Upload a real photograph of an animal, or pick a sample from the Kaggle Animals-10 dataset to test deep learning predictions.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">🐾 Pet Image Classifier</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">Upload a real photograph of a pet or animal, or pick a sample from the dataset to test deep learning predictions.</div>', unsafe_allow_html=True)
 
-    tabs = st.tabs(["🔍 Predict Animal", "📁 10-Animal Dataset Gallery", "ℹ️ Model Architecture & Benchmark"])
+    tabs = st.tabs(["🔍 Predict Pet", "📁 Pet Dataset Gallery", "ℹ️ Model Architecture & Benchmark"])
 
     with tabs[0]:
         col1, col2 = st.columns([1, 1], gap="large")
@@ -355,7 +355,7 @@ def run_streamlit_app():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="10-Animal Image Classification")
+    parser = argparse.ArgumentParser(description="Pet Image Classification")
     parser.add_argument("--image", type=str, help="Path to an image to classify via CLI")
     parser.add_argument("--app", action="store_true", help="Launch Streamlit web application")
     args, unknown = parser.parse_known_args()
