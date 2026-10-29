@@ -5,3 +5,8 @@ __pycache__/
 .vscode/
 .idea/
 *.env
+
+# Presentation & report artifacts (local only)
+*.pptx
+*.pdf
+generate_ppt.py
