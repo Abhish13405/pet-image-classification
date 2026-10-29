@@ -23,27 +23,8 @@ CLASSES_PATH = os.path.join(MODEL_DIR, "classes.json")
 HISTORY_PLOT_PATH = os.path.join(MODEL_DIR, "training_history.png")
 IMAGE_SIZE = (160, 160)
 
-ANIMAL_ICONS = {
-    "butterfly": "🦋",
-    "cat": "🐱",
-    "chicken": "🐔",
-    "cow": "🐮",
-    "dog": "🐶",
-    "elephant": "🐘",
-    "horse": "🐎",
-    "sheep": "🐑",
-    "spider": "🕷️",
-    "squirrel": "🐿️",
-}
-
 _CACHED_MODEL = None
 _CACHED_CLASSES = None
-
-
-def get_animal_icon(class_name):
-    """Returns matching emoji icon for animal class name."""
-    clean_name = str(class_name).lower().strip()
-    return ANIMAL_ICONS.get(clean_name, "🐾")
 
 
 def load_model_and_labels():
@@ -79,8 +60,7 @@ def predict_image(image_input):
       {
          'class_name': str,
          'confidence': float (0-100),
-         'icon': str,
-         'top_predictions': list of (class_name, confidence, icon),
+         'top_predictions': list of (class_name, confidence),
          'all_probabilities': dict of {class_name: probability}
       }
     """
@@ -111,21 +91,18 @@ def predict_image(image_input):
         for idx, prob in enumerate(raw_prediction):
             c_name = classes.get(str(idx), f"Class {idx}")
             c_pct = round(float(prob) * 100.0, 2)
-            c_icon = get_animal_icon(c_name)
             all_probs[c_name] = c_pct
-            ranked_list.append((c_name, c_pct, c_icon))
+            ranked_list.append((c_name, c_pct))
 
         ranked_list.sort(key=lambda x: x[1], reverse=True)
 
         return {
             "class_name": top_class,
             "confidence": round(top_confidence, 2),
-            "icon": get_animal_icon(top_class),
             "top_predictions": ranked_list[:5],
             "all_probabilities": all_probs
         }
     else:
-        # Fallback for binary model
         dog_prob = float(raw_prediction[0])
         cat_prob = 1.0 - dog_prob
         top_class = "Dog" if dog_prob >= 0.5 else "Cat"
@@ -133,8 +110,7 @@ def predict_image(image_input):
         return {
             "class_name": top_class,
             "confidence": round(top_conf, 2),
-            "icon": get_animal_icon(top_class),
-            "top_predictions": [("Dog", round(dog_prob * 100, 2), "🐶"), ("Cat", round(cat_prob * 100, 2), "🐱")],
+            "top_predictions": [("Dog", round(dog_prob * 100, 2)), ("Cat", round(cat_prob * 100, 2))],
             "all_probabilities": {"Dog": round(dog_prob * 100, 2), "Cat": round(cat_prob * 100, 2)}
         }
 
@@ -161,7 +137,7 @@ def run_cli(image_path):
         print(f"\nResult: [{result['class_name'].upper()}]")
         print(f"Confidence: {result['confidence']:.2f}%")
         print("\nTop Ranked Class Probabilities:")
-        for name, prob, icon in result["top_predictions"]:
+        for name, prob in result["top_predictions"]:
             print(f"  • {name:12s}: {prob:6.2f}%")
         print("=" * 55)
     except Exception as e:
@@ -186,12 +162,11 @@ def safe_image(img, caption=None):
 
 
 def run_streamlit_app():
-    """Interactive Streamlit Web Dashboard for 10 Animals."""
+    """Interactive Streamlit Web Dashboard for Pet Image Classification."""
     import streamlit as st
 
     st.set_page_config(
         page_title="Pet Image Classifier | Deep Learning",
-        page_icon="🐾",
         layout="wide",
         initial_sidebar_state="expanded"
     )
@@ -215,33 +190,32 @@ def run_streamlit_app():
 
     # Sidebar
     with st.sidebar:
-        st.header("⚙️ Project Details")
+        st.header("Project Details")
         st.info("**Project**: Pet Image Classification\n\n"
                 "**Backbone**: MobileNetV2 (Transfer Learning)\n\n"
                 "**Dataset**: Kaggle Animals-10\n\n"
-                "**Categories (10)**:\n"
-                "🦋 Butterfly • 🐱 Cat • 🐔 Chicken\n\n"
-                "🐮 Cow • 🐶 Dog • 🐘 Elephant\n\n"
-                "🐎 Horse • 🐑 Sheep • 🕷️ Spider • 🐿️ Squirrel")
+                "**Categories (10)**:\n\n"
+                "Butterfly • Cat • Chicken • Cow • Dog\n\n"
+                "Elephant • Horse • Sheep • Spider • Squirrel")
 
         if os.path.exists(MODEL_PATH):
-            st.success("✅ Model loaded: `pet_classifier.keras`")
+            st.success("Model loaded: `pet_classifier.keras`")
         else:
-            st.error("⚠️ Model not trained yet! Run `python train.py` first.")
+            st.error("Model not trained yet! Run `python train.py` first.")
 
         st.divider()
 
         if os.path.exists(HISTORY_PLOT_PATH):
-            st.subheader("📈 Training History")
+            st.subheader("Training History")
             safe_image(HISTORY_PLOT_PATH, caption="Accuracy & Loss Curves")
 
         st.caption("Internship ML Project • Abhishek Kushwaha • B.Tech CSE (CCML)")
 
     # Main Page Header
-    st.markdown('<div class="main-header">🐾 Pet Image Classifier</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">Pet Image Classifier</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Upload a real photograph of a pet or animal, or pick a sample from the dataset to test deep learning predictions.</div>', unsafe_allow_html=True)
 
-    tabs = st.tabs(["🔍 Predict Pet", "📁 Pet Dataset Gallery", "ℹ️ Model Architecture & Benchmark"])
+    tabs = st.tabs(["Predict Pet", "Pet Dataset Gallery", "Model Architecture & Benchmark"])
 
     with tabs[0]:
         col1, col2 = st.columns([1, 1], gap="large")
@@ -275,7 +249,7 @@ def run_streamlit_app():
                 sample_category = st.selectbox(
                     "Select animal category:",
                     cat_options,
-                    format_func=lambda x: f"{get_animal_icon(x)} {x.capitalize()}"
+                    format_func=lambda x: x.capitalize()
                 )
                 sample_files = sorted(glob.glob(os.path.join(CURRENT_DIR, sample_category, "*.[jJ][pP][gG]")))
 
@@ -307,7 +281,7 @@ def run_streamlit_app():
                         <div style="background:#f8fafc; border: 2px solid #e2e8f0; border-radius:12px; padding: 20px; margin-bottom: 20px;">
                             <div style="font-size: 14px; text-transform: uppercase; color: #64748b; font-weight: 600;">Top Prediction</div>
                             <div style="font-size: 34px; font-weight: 800; color: #1e293b; margin: 8px 0;">
-                                {res['icon']} {res['class_name'].upper()}
+                                {res['class_name'].upper()}
                             </div>
                             <div style="font-size: 17px; color: {badge_color}; font-weight: 700;">
                                 Confidence: {res['confidence']:.2f}%
@@ -316,25 +290,25 @@ def run_streamlit_app():
                     """, unsafe_allow_html=True)
 
                     st.markdown("#### Probability Distribution (Top Ranked)")
-                    for c_name, c_prob, c_icon in res["top_predictions"]:
+                    for c_name, c_prob in res["top_predictions"]:
                         col_l, col_r = st.columns([2, 1])
                         with col_l:
-                            st.write(f"{c_icon} **{c_name}**")
+                            st.write(f"**{c_name}**")
                         with col_r:
                             st.write(f"**{c_prob:.2f}%**")
                         st.progress(float(min(c_prob / 100.0, 1.0)))
 
             else:
-                st.info("👈 Upload an image or choose a dataset sample to view classification results.")
+                st.info("Upload an image or choose a dataset sample to view classification results.")
 
     with tabs[1]:
-        st.subheader("Kaggle Animals-10 Dataset Gallery")
-        st.caption("Showing 3 real sample images from each of the 10 animal classes in the project dataset.")
+        st.subheader("Pet Dataset Gallery")
+        st.caption("Showing 4 real sample images from each of the 10 animal classes in the project dataset.")
 
         for c in cat_options:
             c_samples = sorted(glob.glob(os.path.join(CURRENT_DIR, c, "*.[jJ][pP][gG]")))[:4]
             if c_samples:
-                st.markdown(f"##### {get_animal_icon(c)} {c.capitalize()} ({c}/)")
+                st.markdown(f"##### {c.capitalize()} ({c}/)")
                 cols = st.columns(4)
                 for idx, p in enumerate(c_samples):
                     with cols[idx]:
